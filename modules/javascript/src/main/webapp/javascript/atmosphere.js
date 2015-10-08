@@ -1774,8 +1774,43 @@
                 if (url.indexOf("X-Atmosphere-Framework") !== -1) {
                     return url;
                 }
-
+                
                 url += (url.indexOf('?') !== -1) ? '&' : '?';
+                
+                if (atmosphere.util.isArray(rq.attachHeadersAsQueryString)) {
+                    if (atmosphere.util.inArray("X-Atmosphere-tracking-id", rq.attachHeadersAsQueryString) !== -1) {
+                        url += "X-Atmosphere-tracking-id=" + rq.uuid;
+                    }
+                    if (atmosphere.util.inArray("X-Atmosphere-Framework", rq.attachHeadersAsQueryString) !== -1) {
+                        url += "&X-Atmosphere-Framework=" + version;
+                    }
+                    if (atmosphere.util.inArray("X-Atmosphere-Transport", rq.attachHeadersAsQueryString) !== -1) {
+                        url += "&X-Atmosphere-Transport=" + rq.transport;
+                    }
+                    if ((atmosphere.util.inArray("X-Atmosphere-TrackMessageSize", rq.attachHeadersAsQueryString) !== -1) && rq.trackMessageLength) {
+                        url += "&X-Atmosphere-TrackMessageSize=" + "true";
+                    }
+                    if ((atmosphere.util.inArray("X-Heartbeat-Server", rq.attachHeadersAsQueryString) !== -1) && (rq.heartbeat !== null && rq.heartbeat.server !== null)) {
+                        url += "&X-Heartbeat-Server=" + rq.heartbeat.server;
+                    }
+                    if ((atmosphere.util.inArray("Content-Type", rq.attachHeadersAsQueryString) !== -1) && (rq.contentType !== '')) {
+                        url += "&Content-Type=" + (rq.transport === 'websocket' ? rq.contentType : encodeURIComponent(rq.contentType));
+                    }
+                    if ((atmosphere.util.inArray("X-atmo-protocol", rq.attachHeadersAsQueryString) !== -1) && (rq.enableProtocol)) {
+                        url += "&X-atmo-protocol=true";
+                    }
+                    
+                    atmosphere.util.each(rq.headers, function (name, value) {
+                        if (atmosphere.util.inArray(name, rq.attachHeadersAsQueryString) !== -1) {
+                            var h = atmosphere.util.isFunction(value) ? value.call(this, rq, request, _response) : value;
+                            if (h != null) {
+                                url += "&" + encodeURIComponent(name) + "=" + encodeURIComponent(h);
+                            }
+                        }
+                    });
+                    return url;
+                }
+
                 url += "X-Atmosphere-tracking-id=" + rq.uuid;
                 url += "&X-Atmosphere-Framework=" + version;
                 url += "&X-Atmosphere-Transport=" + rq.transport;
@@ -2169,8 +2204,33 @@
                         ajaxRequest.withCredentials = true;
                     }
                 }
-
-                if (!_request.dropHeaders) {
+                
+                if (atmosphere.util.isArray(_request.dropHeaders)) {
+                    if (atmosphere.util.inArray("X-Atmosphere-Framework", _request.dropHeaders) === -1) {
+                      ajaxRequest.setRequestHeader("X-Atmosphere-Framework", version);
+                    }
+                    if (atmosphere.util.inArray("X-Atmosphere-Transport", _request.dropHeaders) === -1) {
+                    ajaxRequest.setRequestHeader("X-Atmosphere-Transport", request.transport);
+                    }
+                    if ((atmosphere.util.inArray("X-Heartbeat-Server", _request.dropHeaders) === -1) && (request.heartbeat !== null && request.heartbeat.server !== null)) {
+                        ajaxRequest.setRequestHeader("X-Heartbeat-Server", ajaxRequest.heartbeat.server);
+                    }
+                    if ((atmosphere.util.inArray("X-Atmosphere-TrackMessageSize", _request.dropHeaders) === -1) && request.trackMessageLength) {
+                        ajaxRequest.setRequestHeader("X-Atmosphere-TrackMessageSize", "true");
+                    }
+                    if (atmosphere.util.inArray("X-Atmosphere-tracking-id", _request.dropHeaders) === -1) {
+                        ajaxRequest.setRequestHeader("X-Atmosphere-tracking-id", request.uuid);
+                    }
+                    
+                    atmosphere.util.each(request.headers, function (name, value) {
+                        if (atmosphere.util.inArray(name, _request.dropHeaders) === -1) {
+                            var h = atmosphere.util.isFunction(value) ? value.call(this, ajaxRequest, request, create, _response) : value;
+                            if (h != null) {
+                                ajaxRequest.setRequestHeader(name, h);
+                            }
+                        }
+                    }); 
+                } else if (!_request.dropHeaders) {
                     ajaxRequest.setRequestHeader("X-Atmosphere-Framework", version);
                     ajaxRequest.setRequestHeader("X-Atmosphere-Transport", request.transport);
 
