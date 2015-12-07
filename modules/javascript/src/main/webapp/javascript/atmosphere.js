@@ -38,7 +38,7 @@
 
     "use strict";
 
-    var version = "2.2.13-javascript",
+    var version = "2.2.14-javascript",
         atmosphere = {},
         guid,
         offline = false,
@@ -1548,7 +1548,7 @@
                                 _executeWebSocket(true);
                             }
                         } else {
-                            atmosphere.util.log(_request.logLevel, ["Websocket reconnect maximum try reached " + _request.requestCount]);
+                            atmosphere.util.log(_request.logLevel, ["Websocket reconnect maximum try reached " + _requestCount]);
                             if (_canLog('warn')) {
                                 atmosphere.util.warn("Websocket error, reason: " + message.reason);
                             }
@@ -3132,6 +3132,10 @@
         },
 
         getAbsoluteURL: function (url) {
+            if (typeof (document.createElement) === 'undefined') {
+                // assuming the url to be already absolute when DOM is not supported
+                return url;
+            }
             var div = document.createElement("div");
 
             // Uses an innerHTML property to obtain an absolute URL
