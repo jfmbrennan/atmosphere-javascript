@@ -1948,7 +1948,7 @@
                     
                     if (_now >= _requestTime + 60000) {
                         _request.lastReconnect = _now;
-                        _force = true && !!_requestCount;
+                        _force = !!_requestCount;
                         _requestCount = 0;
                     }
                     
