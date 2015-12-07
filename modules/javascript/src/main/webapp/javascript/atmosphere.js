@@ -1938,10 +1938,21 @@
                 };
 
                 var disconnected = function () {
+                    var _force = false;
+                    var _now = atmosphere.util.now();
+                    var _requestTime = _request.lastReconnect || _request.ctime;
+                    
                     // Prevent onerror callback to be called
                     _response.errorHandled = true;
                     _clearState();
-                    reconnectF(false);
+                    
+                    if (_now >= _requestTime + 60000) {
+                        _request.lastReconnect = _now;
+                        _force = true && !!_requestCount;
+                        _requestCount = 0;
+                    }
+                    
+                    reconnectF(_force);
                 };
 
                 if (rq.force || (rq.reconnect && (rq.maxRequest === -1 || rq.requestCount++ < rq.maxRequest))) {
