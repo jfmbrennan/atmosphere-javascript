@@ -73,6 +73,8 @@
         },
         onOpenAfterResume: function (request) {
         },
+        onBeforeUnload: function () {
+        },
 
         /**
          * Creates an object based on an atmosphere subscription that exposes functions defined by the Websocket interface.
@@ -3495,6 +3497,10 @@
 
     atmosphere.util.on(window, "beforeunload", function (event) {
         atmosphere.util.debug(new Date() + " Atmosphere: " + "beforeunload event");
+        
+        if (typeof (atmosphere.onBeforeUnload) !== 'undefined') {
+          atmosphere.onBeforeUnload();
+        }
 
         // ATMOSPHERE-JAVASCRIPT-143: Delay reconnect to avoid reconnect attempts before an actual unload (we don't know if an unload will happen, yet)
         atmosphere._beforeUnloadState = true;
