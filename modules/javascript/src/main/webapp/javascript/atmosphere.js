@@ -38,7 +38,7 @@
 
     "use strict";
 
-    var version = "2.2.14-javascript",
+    var version = "2.2.15-javascript",
         atmosphere = {},
         guid,
         offline = false,
@@ -73,8 +73,7 @@
         },
         onOpenAfterResume: function (request) {
         },
-        onBeforeUnload: function () {
-        },
+        onBeforeUnload: undefined,
 
         /**
          * Creates an object based on an atmosphere subscription that exposes functions defined by the Websocket interface.
@@ -3498,7 +3497,7 @@
     atmosphere.util.on(window, "beforeunload", function (event) {
         atmosphere.util.debug(new Date() + " Atmosphere: " + "beforeunload event");
         
-        if (typeof (atmosphere.onBeforeUnload) !== 'undefined') {
+        if (typeof (atmosphere.onBeforeUnload) === 'function') {
           atmosphere.onBeforeUnload();
         }
 
