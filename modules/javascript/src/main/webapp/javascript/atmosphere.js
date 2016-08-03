@@ -38,8 +38,7 @@
 
     "use strict";
 
-    var version = "2.3.1-javascript",
-        atmosphere = {},
+    var atmosphere = {},
         guid,
         offline = false,
         requests = [],
@@ -48,7 +47,7 @@
         hasOwn = Object.prototype.hasOwnProperty;
 
     atmosphere = {
-
+        version: "2.3.3-javascript",
         onError: function (response) {
         },
         onClose: function (response) {
@@ -188,6 +187,7 @@
                 readResponsesHeaders: false,
                 maxReconnectOnClose: 5,
                 enableProtocol: true,
+                disableDisconnect: false,
                 pollingInterval: 0,
                 heartbeat: {
                     client: null,
@@ -428,7 +428,7 @@
              * @private
              */
             function _disconnect() {
-                if (_request.enableProtocol && !_request.firstMessage) {
+                if (_request.enableProtocol && !_request.disableDisconnect && !_request.firstMessage) {
                     var query = "X-Atmosphere-Transport=close&X-Atmosphere-tracking-id=" + _request.uuid;
 
                     atmosphere.util.each(_request.headers, function (name, value) {
@@ -1292,7 +1292,7 @@
                     _debug("sse.onmessage");
                     _timeout(_request);
 
-                    if (!_request.enableXDR && message.origin && message.origin !== window.location.protocol + "//" + window.location.host) {
+                    if (!_request.enableXDR && window.location.host && message.origin && message.origin !== window.location.protocol + "//" + window.location.host) {
                         atmosphere.util.log(_request.logLevel, ["Origin was not " + window.location.protocol + "//" + window.location.host]);
                         return;
                     }
@@ -1516,7 +1516,13 @@
                         atmosphere.util.warn("Websocket closed, reason: " + reason + ' - wasClean: ' + message.wasClean);
                     }
 
-                    if (_response.closedByClientTimeout || offline) {
+                    if (_response.closedByClientTimeout || (_request.handleOnlineOffline && offline)) {
+                        // IFF online/offline events are handled and we happen to be offline, we stop all reconnect attempts and
+                        // resume them in the "online" event (if we get here in that case, something else went wrong as the
+                        // offline handler should stop any reconnect attempt).
+                        //
+                        // On the other hand, if we DO NOT handle online/offline events, we continue as before with reconnecting
+                        // even if we are offline. Failing to do so would stop all reconnect attemps forever.
                         if (_request.reconnectId) {
                             clearTimeout(_request.reconnectId);
                             delete _request.reconnectId;
@@ -1813,7 +1819,7 @@
                 }
 
                 url += "X-Atmosphere-tracking-id=" + rq.uuid;
-                url += "&X-Atmosphere-Framework=" + version;
+                url += "&X-Atmosphere-Framework=" + atmosphere.version;
                 url += "&X-Atmosphere-Transport=" + rq.transport;
 
                 if (rq.trackMessageLength) {
@@ -2243,7 +2249,7 @@
                         }
                     }); 
                 } else if (!_request.dropHeaders) {
-                    ajaxRequest.setRequestHeader("X-Atmosphere-Framework", version);
+                    ajaxRequest.setRequestHeader("X-Atmosphere-Framework", atmosphere.version);
                     ajaxRequest.setRequestHeader("X-Atmosphere-Transport", request.transport);
 
                     if (request.heartbeat !== null && request.heartbeat.server !== null) {
@@ -2487,6 +2493,9 @@
                                 }
 
                                 var res = cdoc.body ? cdoc.body.lastChild : cdoc;
+                                if (res.omgThisIsBroken) {
+                                    // Cause an exception when res is null, to trigger a reconnect...
+                                }
                                 var readResponse = function () {
                                     // Clones the element not to disturb the original one
                                     var clone = res.cloneNode(true);
@@ -3527,7 +3536,7 @@
             var requestsClone = [].concat(requests);
             for (var i = 0; i < requestsClone.length; i++) {
                 var rq = requestsClone[i];
-                if(rq.handleOnlineOffline) {
+                if(rq.request.handleOnlineOffline) {
                     rq.close();
                     clearTimeout(rq.response.request.id);
 
@@ -3543,7 +3552,7 @@
         atmosphere.util.debug(new Date() + " Atmosphere: online event");
         if (requests.length > 0) {
             for (var i = 0; i < requests.length; i++) {
-                if(requests[i].handleOnlineOffline) {
+                if(requests[i].request.handleOnlineOffline) {
                     requests[i].init();
                     requests[i].execute();
                 }
