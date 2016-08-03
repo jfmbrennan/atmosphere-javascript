@@ -7,7 +7,6 @@ Atmosphere transparently supports WebSockets, Server Sent Events (SSE), Long-Pol
 
 * [Node.js client](https://github.com/Atmosphere/atmosphere.js-node)
 * [Browser client](https://raw.github.com/Atmosphere/atmosphere-javascript/master/modules/javascript/src/main/webapp/javascript/atmosphere.js)
-* [Browser client as a jQuery plugin (deprecated for 2.3.x)](https://raw.github.com/Atmosphere/atmosphere-javascript/javascript-2.2.x/modules/jquery/src/main/webapp/jquery/jquery.atmosphere.js)
 
 Note: In version 2.2.x, there are two versions of the scripts a jquery plugin version jquery.atmosphere.js and a plain javascript version atmosphere.js. As keeping both versions requires overhead and also confuses the users which to choose, in 2.3.x, only the plain javascript version will be supported. If you are currently using the 2.2.x jquery version, please consider migrating to the plain javascript version.
 
@@ -17,7 +16,7 @@ Note: In version 2.2.x, there are two versions of the scripts a jquery plugin ve
 ### manually
 You can get atmosphere.js in several ways. If you use a script tag whose src attribute is set to the below one, browser may not load it because the content type served by raw.github.com is text/plain.
 
-* [atmosphere v2.3.2](https://raw.githubusercontent.com/jfmbrennan/atmosphere-javascript/javascript-project-2.3.1/modules/javascript/src/main/webapp/javascript/atmosphere.js)
+* [atmosphere v2.3.3](https://raw.githubusercontent.com/jfmbrennan/atmosphere-javascript/javascript-project-2.3.3/modules/javascript/src/main/webapp/javascript/atmosphere.js)
 
 ### bower
 
