@@ -431,13 +431,6 @@
                 if (_request.enableProtocol && !_request.disableDisconnect && !_request.firstMessage) {
                     var query = "X-Atmosphere-Transport=close&X-Atmosphere-tracking-id=" + _request.uuid;
 
-                    atmosphere.util.each(_request.headers, function (name, value) {
-                        var h = atmosphere.util.isFunction(value) ? value.call(this, _request, _request, _response) : value;
-                        if (h != null) {
-                            query += "&" + encodeURIComponent(name) + "=" + encodeURIComponent(h);
-                        }
-                    });
-
                     var url = _request.url.replace(/([?&])_=[^&]*/, query);
                     url = url + (url === _request.url ? (/\?/.test(_request.url) ? "&" : "?") + query : "");
 
@@ -458,6 +451,7 @@
                         closeR.enableXDR = _request.enableXDR
                     }
                     closeR.async = _request.closeAsync;
+                    closeR.headers = _request.headers;
                     _pushOnClose("", closeR);
                 }
             }
@@ -1536,7 +1530,7 @@
 
                     if (_abortingConnection) {
                         atmosphere.util.log(_request.logLevel, ["Websocket closed normally"]);
-                    } else if (!webSocketOpened) {
+                    } else if (!webSocketOpened && _request.fallbackTransport !== 'websocket') {
                         _reconnectWithFallbackTransport("Websocket failed on first connection attempt. Downgrading to " + _request.fallbackTransport + " and resending");
 
                     } else if (_request.reconnect && _response.transport === 'websocket' ) {
@@ -1580,7 +1574,9 @@
                 var nMessage = message;
                 if (request.transport === 'polling') return nMessage;
 
-                if (request.enableProtocol && request.firstMessage && atmosphere.util.trim(message).length !== 0) {
+                request.receivedUuidOnReopen = false;
+
+                if (request.enableProtocol && (request.firstMessage || request.waitForUuid) && atmosphere.util.trim(message).length !== 0) {
                     var pos = request.trackMessageLength ? 1 : 0;
                     var messages = message.split(request.messageDelimiter);
 
@@ -1590,6 +1586,7 @@
                         return nMessage;
                     }
 
+                    request.receivedUuidOnReopen = !!request.waitForUuid;
                     request.firstMessage = false;
                     request.uuid = atmosphere.util.trim(messages[pos]);
 
@@ -1853,12 +1850,18 @@
                 if (!rq.isOpen) {
                     rq.isOpen = true;
                     _open('opening', rq.transport, rq);
+                } else if (rq.receivedUuidOnReopen) {
+                    rq.isReopen = false;
+                    rq.waitForUuid = false;
+                    _open('re-opening', rq.transport, rq);
                 } else if (rq.isReopen) {
                     rq.isReopen = false;
-                    _open('re-opening', rq.transport, rq);
+                    rq.waitForUuid = true;
+                    return;
                 } else if (_response.state === 'messageReceived' && (rq.transport === 'jsonp' || rq.transport === 'long-polling')) {
                     _openAfterResume(_response);
                 } else {
+                    rq.waitForUuid = false;
                     return;
                 }
 
@@ -2261,6 +2264,13 @@
                     }
                     ajaxRequest.setRequestHeader("X-Atmosphere-tracking-id", request.uuid);
 
+                    atmosphere.util.each(request.headers, function (name, value) {
+                        var h = atmosphere.util.isFunction(value) ? value.call(this, ajaxRequest, request, create, _response) : value;
+                        if (h != null) {
+                            ajaxRequest.setRequestHeader(name, h);
+                        }
+                    });
+                } else if (_response.transport === 'websocket' && _response.state === 'unsubscribe') {
                     atmosphere.util.each(request.headers, function (name, value) {
                         var h = atmosphere.util.isFunction(value) ? value.call(this, ajaxRequest, request, create, _response) : value;
                         if (h != null) {
